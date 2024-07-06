@@ -30,17 +30,9 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
-router.post('/addEvent', upload.single('image'), (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ success: false, message: 'No file uploaded' });
-    }
-    console.log(req.file); // Print the file details
-    res.status(200).json({ success: true, message: 'File uploaded successfully' });
-  } catch (error) {
-    res.status(500).json({ success: false, message: 'Something went wrong' });
-  }
-});
+router.post("/startLive", userFunctions.startLive);
+router.post("/stopLive", userFunctions.stopLive);
+router.get("/liveStatus", userFunctions.liveStatus);
 
 router.post("/createUser", userFunctions.createUser);
 router.post("/createAdmin", userFunctions.createAdmin);
@@ -53,9 +45,18 @@ router.get("/checkToken/:authToken", userFunctions.checkToken);
 router.get("/getUserDetails/:authToken/:admin", userFunctions.getUserDetails);
 router.get("/adminStatus/:authToken", userFunctions.adminStatus);
 
-// router.get("/getLive",userFunctions.getLive);
-// router.put("/startLive",userFunctions.startLive);
-// router.put("/stopLive",userFunctions.stopLive);
+router.post('/addEvent', upload.single('image'), (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No file uploaded' });
+    }
+    console.log(req.file); // Print the file details
+    res.status(200).json({ success: true, message: 'File uploaded successfully' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Something went wrong' });
+  }
+});
+
 
 
 module.exports = router;

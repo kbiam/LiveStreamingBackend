@@ -1,17 +1,86 @@
 const User = require('../models/User');
 const AdminUser = require('../models/AdminUser');
+const express=require('express')
+const app = express()
+const port = 4001
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const sendEmail = require('../sendEmail');
 require('dotenv').config();
 const saltNumber = 10;
 const jwtSecret = "HaHa";
-let live = false;
+const http = require('http');
+const httpServer = http.createServer(app);
+const socket = require('socket.io');
 
+let live=0,streamerId=null;
 const decodeToken = (authToken) => {
   const decoded = jwt.verify(authToken, jwtSecret);
   if (!decoded) return 0;
   return decoded.id;
+}
+
+
+const io = new socket.Server(httpServer, {
+  cors: {
+    origin: process.env.BASE_URL
+  }
+});
+
+const userMap = new Map();
+
+io.on('connection', (socket) => {
+  console.log('New client connected');
+  
+  socket.on('join', async (userId) => {
+    userMap.set(socket.id, decodeToken(userId)); 
+  });
+
+  socket.on('disconnect', async () => {
+    const userId = userMap.get(socket.id); // Get the username from the map
+    if (userId && userId==streamerId) {
+      live=0;
+      streamerId=null;
+    }
+    userMap.delete(socket.id); // Remove from the map
+    console.log(userId, ' Client disconnected');
+  });
+});
+
+httpServer.listen(port, () => {
+  console.log("socket server is running at port", port);
+});
+
+
+
+const liveStatus=()=>{
+  try{
+    return {success:true,live:live,id:streamerId};
+  } catch(error){
+    console.log(error);
+    return { success: false, message: "Something went wrong, try again later" };
+  }
+}
+const startLive=(id)=>{
+  try{
+    live=1;
+    streamerId=decodeToken(id);
+    return {success:true,live:live,id:streamerId};
+  } catch(error){
+    console.log(error);
+    return { success: false, message: "Something went wrong, try again later" };
+  }
+}
+
+const stopLive=(id)=>{
+  try{
+    live=0;
+    streamerId=null;
+    return {success:true,live:live,id:streamerId};
+  } catch(error){
+    console.log(error);
+    return { success: false, message: "Something went wrong, try again later" };
+  }
 }
 
 const createUser = async (userData) => {
@@ -129,37 +198,6 @@ const adminStatus = async (authToken) => {
   }
 };
 
-const updateUser = async (updateData) => {
-  try {
-    const check = await currentData.findOne({ id: 1 });
-    if (check != null) {
-      await currentData.updateOne({ id: 1 }, {
-        $set: {
-          id: 1,
-          incoming: updateData.Incoming,
-          drain: updateData.Drain,
-          pump: updateData.Pump,
-          togglePressure: updateData.togglePressure,
-          drainPressure: updateData.drainPressure
-        }
-      });
-    } else {
-      await currentData.create({
-        id: 1,
-        incoming: updateData.Incoming,
-        drain: updateData.Drain,
-        pump: updateData.Pump,
-        togglePressure: updateData.togglePressure,
-        drainPressure: updateData.drainPressure
-      });
-    }
-    return { success: true };
-  } catch (error) {
-    console.log(error);
-    return { success: false, message: "Something went wrong, try again later" };
-  }
-};
-
 const forgotPassword = async (email, admin) => {
   let user;
   if (admin == 1){
@@ -232,16 +270,11 @@ const getUserDetails = async (authToken, admin) => {
   }
 };
 
-// const getLive = async () => {
-//   return { live: live }
-// };
-
-// const setLive = async () => {
-//   live = true;
-//   return { live: live }
-// };
 
 module.exports = { 
+  liveStatus,
+  startLive,
+  stopLive,
   createUser, 
   loginUser, 
   verifyUser, 
@@ -251,7 +284,4 @@ module.exports = {
   getUserDetails, 
   createAdmin, 
   adminStatus, 
-  // getLive, 
-  // setLive, 
-  updateUser 
 };

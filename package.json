@@ -8,7 +8,9 @@
   "author": "ekalavya",
   "license": "ISC",
   "dependencies": {
+    "@mapbox/node-pre-gyp": "^1.0.11",
     "bcrypt": "^5.1.1",
+    "body-parser": "^1.19.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.1",
     "express": "^4.18.2",
@@ -19,7 +21,10 @@
     "multer": "^1.4.5-lts.1",
     "nodemailer": "^6.9.8",
     "nodemon": "^3.0.3",
-    "react-router-dom": "^6.21.3"
+    "react-router-dom": "^6.21.3",
+    "serve-static": "^1.15.0",
+    "socket.io": "^4.7.5",
+    "wrtc": "^0.4.7"
   },
   "description": ""
 }

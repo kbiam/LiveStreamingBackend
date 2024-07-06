@@ -1,10 +1,25 @@
 const { validationResult } = require('express-validator');
 const UserCollection = require('../routeCollection/authCollection');
 
+
+const liveStatus=async(req,res)=>{
+    const response = UserCollection.liveStatus();
+    res.status(201).json(response);
+}
+const startLive=async(req,res)=>{
+    const response = UserCollection.startLive(req.body.id);
+    res.status(201).json(response);
+}
+const stopLive=async(req,res)=>{
+    const response = UserCollection.stopLive(req.body);
+    res.status(201).json(response);
+}
+
 const createUser = async (req, res) => {
     const response = await UserCollection.createUser(req.body);
     res.status(201).json(response);
 };
+
 
 const createAdmin = async (req, res) => {
     const response = await UserCollection.createAdmin(req.body);
@@ -13,6 +28,7 @@ const createAdmin = async (req, res) => {
 
 const loginUser = async (req, res) => {
     let email=req.params.email,password=req.params.password,admin=req.params.admin;
+    console.log(email)
     const response = await UserCollection.loginUser(email,password,admin);
     res.status(201).json(response);
 };
@@ -57,32 +73,21 @@ const getUserDetails = async (req, res) => {
     res.status(201).json(response);
 };
 
-// const getLive = async (req, res) => {
-//     const response = await UserCollection.getLive();
-//     res.status(201).json(response);
-// };
-// const stopLive = async (req, res) => {
-//     const response = await UserCollection.stopLive();
-//     res.status(201).json(response);
-// };
-// const startLive = async (req, res) => {
-//     const response = await UserCollection.startLive();
-//     res.status(201).json(response);
-// };
+
 
 
 module.exports = {
-  createAdmin,
-  adminStatus,
-//   startLive,
-//   stopLive,
-//   getLive,
-  createUser,
-  loginUser,
-  verifyUser,
-  updateUser,
-  forgotPassword,
-  updatePassword,
-  checkToken,
-  getUserDetails,
+    liveStatus,
+    startLive,
+    stopLive,
+    createAdmin,
+    adminStatus,
+    createUser,
+    loginUser,
+    verifyUser,
+    updateUser,
+    forgotPassword,
+    updatePassword,
+    checkToken,
+    getUserDetails,
 };
