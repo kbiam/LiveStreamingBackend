@@ -1,5 +1,7 @@
 const User = require('../models/User');
 const AdminUser = require('../models/AdminUser');
+const Event=require('../models/Event')
+const Video=require("../models/Video")
 const express=require('express')
 const app = express()
 const port = 4001
@@ -12,6 +14,7 @@ const jwtSecret = "HaHa";
 const http = require('http');
 const httpServer = http.createServer(app);
 const socket = require('socket.io');
+
 
 let live=0,streamerId=null;
 const decodeToken = (authToken) => {
@@ -100,6 +103,51 @@ const createUser = async (userData) => {
     await sendEmail(email, "Verify Email", url);
     
     return { success: true, message: "An email sent to your account, please verify", data: authToken };
+  } catch (error) {
+    console.log(error);
+    return { success: false, message: "Something went wrong, try again later" };
+  }
+};
+
+const addEvent = async (eventData) => {
+  try {
+    console.log(eventData)
+    await Event.create({ name: eventData.name, userId: eventData.userId, imageUrl:eventData.imageUrl,date:eventData.date });
+    return { success: true, message: "Event added successfully!!" };
+  } catch (error) {
+    console.log(error);
+    return { success: false, message: "Something went wrong, try again later" };
+  }
+};
+
+const getEvents = async () => {
+  try {
+    const response=await Event.find({ });
+    console.log(response)
+    return { success: true, data: response };
+  } catch (error) {
+    console.log(error);
+    return { success: false, message: "Something went wrong, try again later" };
+  }
+};
+
+
+const addVideo = async (videoData) => {
+  try {
+    console.log(videoData)
+    await Video.create({ name: videoData.name, userId: videoData.userId, videoUrl:videoData.videoUrl });
+    return { success: true, message: "Video added successfully!!" };
+  } catch (error) {
+    console.log(error);
+    return { success: false, message: "Something went wrong, try again later" };
+  }
+};
+
+const getVideos = async () => {
+  try {
+    const response=await Video.find({ });
+    console.log(response)
+    return { success: true, data: response };
   } catch (error) {
     console.log(error);
     return { success: false, message: "Something went wrong, try again later" };
@@ -272,6 +320,10 @@ const getUserDetails = async (authToken, admin) => {
 
 
 module.exports = { 
+  getVideos,
+  addVideo,
+  getEvents,
+  addEvent,
   liveStatus,
   startLive,
   stopLive,

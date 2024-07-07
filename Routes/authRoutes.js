@@ -33,7 +33,6 @@ const upload = multer({ storage: storage });
 router.post("/startLive", userFunctions.startLive);
 router.post("/stopLive", userFunctions.stopLive);
 router.get("/liveStatus", userFunctions.liveStatus);
-
 router.post("/createUser", userFunctions.createUser);
 router.post("/createAdmin", userFunctions.createAdmin);
 router.get("/loginUser/:email/:password/:admin", userFunctions.loginUser);
@@ -44,6 +43,11 @@ router.put("/updatePassword/:admin", userFunctions.updatePassword);
 router.get("/checkToken/:authToken", userFunctions.checkToken);
 router.get("/getUserDetails/:authToken/:admin", userFunctions.getUserDetails);
 router.get("/adminStatus/:authToken", userFunctions.adminStatus);
+router.post("/addEvent", userFunctions.addEvent);
+router.get("/getEvents",userFunctions.getEvents);
+router.post("/addVideo", userFunctions.addVideo);
+router.get("/getVides",userFunctions.getVideos);
+
 
 router.post('/addEvent', upload.single('image'), (req, res) => {
   try {

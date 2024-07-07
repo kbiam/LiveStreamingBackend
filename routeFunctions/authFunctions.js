@@ -19,6 +19,24 @@ const createUser = async (req, res) => {
     const response = await UserCollection.createUser(req.body);
     res.status(201).json(response);
 };
+const getEvents = async (req, res) => {
+    const response = await UserCollection.getEvents();
+    res.status(201).json(response);
+};
+
+const addEvent = async (req, res) => {
+    const response = await UserCollection.addEvent(req.body);
+    res.status(201).json(response);
+};
+const getVideos = async (req, res) => {
+    const response = await UserCollection.getVideos();
+    res.status(201).json(response);
+};
+
+const addVideo = async (req, res) => {
+    const response = await UserCollection.addVideo(req.body);
+    res.status(201).json(response);
+};
 
 
 const createAdmin = async (req, res) => {
@@ -77,6 +95,10 @@ const getUserDetails = async (req, res) => {
 
 
 module.exports = {
+    addVideo,
+    getVideos,
+    getEvents,
+    addEvent,
     liveStatus,
     startLive,
     stopLive,
