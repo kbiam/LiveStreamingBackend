@@ -25,9 +25,7 @@ let broadcasterSdpOffer;
 app.use(express.static(path.resolve(__dirname, "../Frontend/build")));
 
 // Handle all GET requests to return the React app
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, "../Frontend/build", "index.html"));
-});
+
 
 
 app.post("/consumer", async ({ body }, res) => {
