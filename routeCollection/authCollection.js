@@ -11,10 +11,6 @@ require('dotenv').config();
 
 const saltNumber = 10;
 const jwtSecret = "HaHa";
-const port = 4001
-const http = require('http');
-const httpServer = http.createServer(app);
-const socket = require('socket.io');
 
 
 let live=0,streamerId=null;
@@ -23,39 +19,6 @@ const decodeToken = (authToken) => {
   if (!decoded) return 0;
   return decoded.id;
 }
-
-
-const io = new socket.Server(httpServer, {
-  cors: {
-    origin:  "http://localhost:3000"
-  }
-});
-
-const userMap = new Map();
-
-io.on('connection', (socket) => {
-  console.log('New client connected');
-  
-  socket.on('join', async (userId) => {
-    console.log(`${decodeToken(userId)} user joined`)
-    userMap.set(socket.id, decodeToken(userId)); 
-  });
-
-  socket.on('disconnect', async () => {
-    const userId = userMap.get(socket.id); // Get the username from the map
-    if (userId && userId==streamerId) {
-      live=0;
-      streamerId=null;
-    }
-    userMap.delete(socket.id); // Remove from the map
-    console.log(userId, ' Client disconnected');
-  });
-});
-
-httpServer.listen(port, () => {
-  console.log("socket server is running at port", port);
-});
-
 
 
 const liveStatus=()=>{
