@@ -4,13 +4,14 @@ const Event=require('../models/Event')
 const Video=require("../models/Video")
 const express=require('express')
 const app = express()
-const port = 4001
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const sendEmail = require('../sendEmail');
 require('dotenv').config();
+
 const saltNumber = 10;
 const jwtSecret = "HaHa";
+const port = 4001
 const http = require('http');
 const httpServer = http.createServer(app);
 const socket = require('socket.io');
@@ -26,7 +27,7 @@ const decodeToken = (authToken) => {
 
 const io = new socket.Server(httpServer, {
   cors: {
-    origin: process.env.BASE_URL
+    origin:  "http://localhost:3000"
   }
 });
 
@@ -36,6 +37,7 @@ io.on('connection', (socket) => {
   console.log('New client connected');
   
   socket.on('join', async (userId) => {
+    console.log(`${decodeToken(userId)} user joined`)
     userMap.set(socket.id, decodeToken(userId)); 
   });
 
@@ -87,7 +89,7 @@ const stopLive=(id)=>{
 }
 
 const createUser = async (userData) => {
-  console.log(userData)
+  //console.log(userData)
   const salt = await bcrypt.genSalt(saltNumber);
   const securedPassword = await bcrypt.hash(userData.password, salt);
   const email = userData.email;
@@ -111,7 +113,7 @@ const createUser = async (userData) => {
 
 const addEvent = async (eventData) => {
   try {
-    console.log(eventData)
+    //console.log(eventData)
     await Event.create({ name: eventData.name, userId: eventData.userId, imageUrl:eventData.imageUrl,date:eventData.date });
     return { success: true, message: "Event added successfully!!" };
   } catch (error) {
@@ -123,7 +125,7 @@ const addEvent = async (eventData) => {
 const getEvents = async () => {
   try {
     const response=await Event.find({ });
-    console.log(response)
+    //console.log(response)
     return { success: true, data: response };
   } catch (error) {
     console.log(error);
@@ -134,7 +136,7 @@ const getEvents = async () => {
 
 const addVideo = async (videoData) => {
   try {
-    console.log(videoData)
+    //console.log(videoData)
     await Video.create({ name: videoData.name, userId: videoData.userId, videoUrl:videoData.videoUrl });
     return { success: true, message: "Video added successfully!!" };
   } catch (error) {
@@ -146,7 +148,7 @@ const addVideo = async (videoData) => {
 const getVideos = async () => {
   try {
     const response=await Video.find({ });
-    console.log(response)
+    //console.log(response)
     return { success: true, data: response };
   } catch (error) {
     console.log(error);
@@ -155,7 +157,7 @@ const getVideos = async () => {
 };
 
 const createAdmin = async (userData) => {
-  console.log(userData);
+  //console.log(userData);
   
   const salt = await bcrypt.genSalt(saltNumber);
   const securedPassword = await bcrypt.hash(userData.password, salt);
@@ -178,7 +180,7 @@ const createAdmin = async (userData) => {
 
 const loginUser = async (email, password, admin) => {  
   try {
-    console.log("login", email, password, admin)
+    //console.log("login", email, password, admin)
     let userData;
     if (admin == 1){
       userData = await AdminUser.findOne({ 'email': email });
@@ -209,9 +211,9 @@ const loginUser = async (email, password, admin) => {
 
 const verifyUser = async (authToken, admin) => {
   try {
-    console.log(authToken, admin)
+    // console.log(authToken, admin)
     let id = decodeToken(authToken);
-    console.log("verfyid",id)
+    //console.log("verfyid",id)
     if (id == 0) return { success: false, message: "Token verification failed" };
     let user;
     if(admin == 1) {
@@ -300,7 +302,7 @@ const getUserDetails = async (authToken, admin) => {
   try {
     let id = decodeToken(authToken);
     if (id == 0) return { success: false, message: "Token verification failed" };
-    console.log(id,authToken,admin);
+    //console.log(id,authToken,admin);
     let userData;
     if (admin == 1){
       userData = await AdminUser.findOne({ _id:id });
@@ -310,7 +312,7 @@ const getUserDetails = async (authToken, admin) => {
       userData = await User.findOne({  _id:id });
       if (!userData) return { success: false, message: "User not found" };
     }
-    console.log(userData)
+    //console.log(userData)
     return { success: true, data: userData };
   } catch (error) {
     console.log(error);
