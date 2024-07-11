@@ -27,7 +27,7 @@ const decodeToken = (authToken) => {
 
 const io = new socket.Server(httpServer, {
   cors: {
-    origin:  "http://localhost:3000"
+    origin:  "https://live-streaming-frontend-mgnivtsyo-ekalavyas-projects.vercel.app/view-stream"
   }
 });
 
