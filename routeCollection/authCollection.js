@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const AdminUser = require('../models/AdminUser');
 const Event=require('../models/Event')
+const Image=require('../models/Images')
 const Video=require("../models/Video")
 const express=require('express')
 const app = express()
@@ -88,6 +89,28 @@ const addEvent = async (eventData) => {
 const getEvents = async () => {
   try {
     const response=await Event.find({ });
+    //console.log(response)
+    return { success: true, data: response };
+  } catch (error) {
+    console.log(error);
+    return { success: false, message: "Something went wrong, try again later" };
+  }
+};
+
+const addImage = async (imageData) => {
+  try {
+    //console.log(eventData)
+    await Image.create({ name: imageData.name, userId: imageData.userId, imageUrl:imageData.imageUrl});
+    return { success: true, message: "Image added successfully!!" };
+  } catch (error) {
+    console.log(error);
+    return { success: false, message: "Something went wrong, try again later" };
+  }
+};
+
+const getImages= async () => {
+  try {
+    const response=await Image.find({ });
     //console.log(response)
     return { success: true, data: response };
   } catch (error) {
@@ -285,6 +308,8 @@ const getUserDetails = async (authToken, admin) => {
 
 
 module.exports = { 
+  getImages,
+  addImage,
   getVideos,
   addVideo,
   getEvents,

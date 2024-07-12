@@ -28,6 +28,14 @@ const addEvent = async (req, res) => {
     const response = await UserCollection.addEvent(req.body);
     res.status(201).json(response);
 };
+const addImage = async (req, res) => {
+    const response = await UserCollection.addImage(req.body);
+    res.status(201).json(response);
+};
+const getImages = async (req, res) => {
+    const response = await UserCollection.getImages();
+    res.status(201).json(response);
+};
 const getVideos = async (req, res) => {
     const response = await UserCollection.getVideos();
     res.status(201).json(response);
@@ -95,6 +103,8 @@ const getUserDetails = async (req, res) => {
 
 
 module.exports = {
+    getImages,
+    addImage,
     addVideo,
     getVideos,
     getEvents,

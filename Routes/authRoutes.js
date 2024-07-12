@@ -6,29 +6,6 @@ const fs = require('fs');
 const path = require('path');
 
 
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, path.join(__dirname, '../uploads')); // Set the destination directory
-  },
-  filename: function (req, file, cb) {
-    const uploadPath = path.join(__dirname, '../uploads', file.originalname);
-    if (fs.existsSync(uploadPath)) {
-      const ext = path.extname(file.originalname);
-      const name = path.basename(file.originalname, ext);
-      let newFilename = `${name}(1)${ext}`;
-      let counter = 1;
-      while (fs.existsSync(path.join(__dirname, '../uploads', newFilename))) {
-        counter++;
-        newFilename = `${name}(${counter})${ext}`;
-      }
-      cb(null, newFilename);
-    } else {
-      cb(null, file.originalname); // Use the original name of the file
-    }
-  }
-});
-
-const upload = multer({ storage: storage });
 
 router.post("/startLive", userFunctions.startLive);
 router.post("/stopLive", userFunctions.stopLive);
@@ -47,19 +24,9 @@ router.post("/addEvent", userFunctions.addEvent);
 router.get("/getEvents",userFunctions.getEvents);
 router.post("/addVideo", userFunctions.addVideo);
 router.get("/getVides",userFunctions.getVideos);
+router.post("/addImage", userFunctions.addImage);
+router.get("/getImages",userFunctions.getImages);
 
-
-router.post('/addEvent', upload.single('image'), (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ success: false, message: 'No file uploaded' });
-    }
-    console.log(req.file); // Print the file details
-    res.status(200).json({ success: true, message: 'File uploaded successfully' });
-  } catch (error) {
-    res.status(500).json({ success: false, message: 'Something went wrong' });
-  }
-});
 
 
 
