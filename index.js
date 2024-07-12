@@ -25,11 +25,17 @@ let broadcasterSdpOffer;
 app.use(express.static(path.resolve(__dirname, "../Frontend/build")));
 
 // Handle all GET requests to return the React app
+<<<<<<< HEAD
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, "../Frontend/build", "index.html"));
 });
 
 
+=======
+
+
+
+>>>>>>> 160a52322ea2496b40d7453b39610bc2fab135c0
 app.post("/consumer", async ({ body }, res) => {
   try {
     const peer = new webrtc.RTCPeerConnection({

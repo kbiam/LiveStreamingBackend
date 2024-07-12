@@ -12,6 +12,10 @@ require('dotenv').config();
 
 const saltNumber = 10;
 const jwtSecret = "HaHa";
+<<<<<<< HEAD
+=======
+
+>>>>>>> 160a52322ea2496b40d7453b39610bc2fab135c0
 
 
 let live=0,streamerId=null;
