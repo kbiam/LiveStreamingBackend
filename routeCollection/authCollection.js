@@ -13,7 +13,6 @@ require('dotenv').config();
 const saltNumber = 10;
 const jwtSecret = "HaHa";
 
-
 let live=0,streamerId=null;
 const decodeToken = (authToken) => {
   const decoded = jwt.verify(authToken, jwtSecret);
@@ -327,3 +326,4 @@ module.exports = {
   createAdmin, 
   adminStatus, 
 };
+
