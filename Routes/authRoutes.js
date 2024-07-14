@@ -26,8 +26,8 @@ router.post("/addVideo", userFunctions.addVideo);
 router.get("/getVides",userFunctions.getVideos);
 router.post("/addImage", userFunctions.addImage);
 router.get("/getImages",userFunctions.getImages);
-
-
+router.get("/getAdmins",userFunctions.getAdmins);
+router.get("/getUsers",userFunctions.getUsers);
 
 
 module.exports = router;

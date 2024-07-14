@@ -23,6 +23,14 @@ const getEvents = async (req, res) => {
     const response = await UserCollection.getEvents();
     res.status(201).json(response);
 };
+const getUsers = async (req, res) => {
+    const response = await UserCollection.getUsers();
+    res.status(201).json(response);
+};
+const getAdmins = async (req, res) => {
+    const response = await UserCollection.getAdmins();
+    res.status(201).json(response);
+};
 
 const addEvent = async (req, res) => {
     const response = await UserCollection.addEvent(req.body);
@@ -103,6 +111,8 @@ const getUserDetails = async (req, res) => {
 
 
 module.exports = {
+    getUsers,
+    getAdmins,
     getImages,
     addImage,
     addVideo,

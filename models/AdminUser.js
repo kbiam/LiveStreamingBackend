@@ -21,7 +21,12 @@ const AdminUserSchema= new Schema({
     verified:{
         type:Boolean,
         default:false
-    }
+    },
+    admin:{
+        type:Boolean,
+        default:1
+    },
+
 
 });
 

@@ -12,11 +12,6 @@ require('dotenv').config();
 
 const saltNumber = 10;
 const jwtSecret = "HaHa";
-<<<<<<< HEAD
-=======
-
->>>>>>> 160a52322ea2496b40d7453b39610bc2fab135c0
-
 
 let live=0,streamerId=null;
 const decodeToken = (authToken) => {
@@ -93,6 +88,26 @@ const addEvent = async (eventData) => {
 const getEvents = async () => {
   try {
     const response=await Event.find({ });
+    //console.log(response)
+    return { success: true, data: response };
+  } catch (error) {
+    console.log(error);
+    return { success: false, message: "Something went wrong, try again later" };
+  }
+};
+const getAdmins = async () => {
+  try {
+    const response=await AdminUser.find({ });
+    //console.log(response)
+    return { success: true, data: response };
+  } catch (error) {
+    console.log(error);
+    return { success: false, message: "Something went wrong, try again later" };
+  }
+};
+const getUsers = async () => {
+  try {
+    const response=await User.find({ });
     //console.log(response)
     return { success: true, data: response };
   } catch (error) {
@@ -312,6 +327,8 @@ const getUserDetails = async (authToken, admin) => {
 
 
 module.exports = { 
+  getAdmins,
+  getUsers,
   getImages,
   addImage,
   getVideos,
