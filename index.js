@@ -1,109 +1,188 @@
-const express = require('express')
-const mongoDB = require("./db");
-const app = express()
-const port = 4000
+const express = require('express');
+const bodyParser = require('body-parser');
+const webrtc = require('wrtc');
+const path = require('path');
+const cors = require('cors');
+const socketIo = require('socket.io');
+const http = require('http');
+const { v4: uuidv4 } = require('uuid'); // Importing UUID for unique IDs
 
-var cors = require('cors')
-const bodyParser = require("body-parser");
+const app = express();
+const server = http.createServer(app);
+const io = socketIo(server, {
+  cors: {
+    origin: 'http://localhost:3000', // Update to match your frontend URL
+    methods: ['GET', 'POST'],
+    allowedHeaders: ['Content-Type'],
+    credentials: true
+  }
+});
+let streams = {}; // Store streams by streamer ID
+let iceCandidates = {}; // Store ICE candidates by streamer ID
 
-const webrtc = require("wrtc");
-const path = require("path");
-
-app.use(express.static("public"));
+app.use(cors({ origin: '*' }));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use(express.json())
-app.use(cors())
 
 app.use('/api', require("./Routes/authRoutes"));
 
-let senderStream;
-app.use(cors({origin: '*'}));
-let broadcasterSdpOffer;
-
 // Serve the static files from the React app
-app.use(express.static(path.resolve(__dirname, "../Frontend/build")));
+app.use(express.static(path.resolve(__dirname, '../Frontend/build')));
 
+// Handle all GET requests to return the React app
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../Frontend/build', 'index.html'));
+});
 
+app.post('/generate-stream-id', (req, res) => {
+  const streamerId = uuidv4(); // Generate unique ID for each stream
+  res.json({ streamerId });
+});
 
-app.post("/consumer", async ({ body }, res) => {
+app.post('/consumer/:streamerId', async (req, res) => {
+  const { streamerId } = req.params;
+  console.log(streamerId)
   try {
     const peer = new webrtc.RTCPeerConnection({
       iceServers: [
         {
-          urls: "stun:stun.stunprotocol.org",
+          urls: 'stun:stunprotocol.org',
         },
       ],
     });
-    const desc = new webrtc.RTCSessionDescription(body.sdp);
+
+    peer.onicecandidate = (event) => {
+      if (event.candidate) {
+        io.emit('new-ice-candidate', {
+          candidate: event.candidate,
+          role: 'consumer',
+          streamerId,
+        });
+      }
+    };
+    // console.log(req.body,"body")
+    const desc = new webrtc.RTCSessionDescription(req.body);
+    console.log('Received SDP:'); // Log the received SDP
+    console.log('SDP Type:', desc.type); // Log the SDP type
     await peer.setRemoteDescription(desc);
-    console.log(senderStream);
-    if (!senderStream) {
-      return res.status(404).json({ message: "No Stream to watch" });
+
+    console.log(streams,"streams")
+    if (!streams[streamerId]) {
+      return res.status(403)
     }
-    senderStream
-      .getTracks()
-      .forEach((track) => peer.addTrack(track, senderStream));
+
+    streams[streamerId].getTracks().forEach((track) => peer.addTrack(track, streams[streamerId]));
     const answer = await peer.createAnswer();
     await peer.setLocalDescription(answer);
+
     const payload = {
       sdp: peer.localDescription,
     };
     res.json(payload);
-  } catch (error) {
-    console.error("Error in /consumer:", error);
-    res.status(500).json({ error: error.message });
-    ``;
-  }
-});
 
-app.get("/broadcaster-sdp-offer", (req, res) => {
-  try {
-    if (broadcasterSdpOffer) {
-      res.json({ sdp: broadcasterSdpOffer });
-    } else {
-      res.status(404).json({ error: "No broadcaster SDP offer available" });
+    if (iceCandidates[streamerId]) {
+      iceCandidates[streamerId].forEach(async (candidate) => {
+        try {
+          await peer.addIceCandidate(candidate);
+        } catch (e) {
+          console.error('Error adding ICE candidate:', e);
+        }
+      });
     }
   } catch (error) {
-    console.error("Error in /broadcaster-sdp:", error);
+    console.error('Error in /consumer:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
-app.post("/broadcast", async ({ body }, res) => {
+app.post('/broadcast/:streamerId', async (req, res) => {
+  const { streamerId } = req.params;
+  console.log("streamerId",streamerId)
   try {
     const peer = new webrtc.RTCPeerConnection({
       iceServers: [
         {
-          urls: "stun:stun.stunprotocol.org",
+          urls: 'stun:stunprotocol.org',
         },
       ],
     });
-    peer.ontrack = (e) => handleTrackEvent(e, peer);
-    const desc = new webrtc.RTCSessionDescription(body.sdp);
+
+    peer.ontrack = (e) => handleTrackEvent(e, streamerId);
+    peer.onicecandidate = (event) => {
+      if (event.candidate) {
+        io.emit('new-ice-candidate', {
+          candidate: event.candidate,
+          role: 'broadcaster',
+          streamerId,
+        });
+      }
+    };
+    
+    const desc = new webrtc.RTCSessionDescription(req.body.sdp);
+    // console.log('Received SDP:', desc); // Log the received SDP
+    // console.log('SDP Type:', desc.type); // Log the SDP type
     await peer.setRemoteDescription(desc);
+
     const answer = await peer.createAnswer();
     await peer.setLocalDescription(answer);
-    broadcasterSdpOffer = peer.localDescription;
+
     const payload = {
       sdp: peer.localDescription,
     };
     res.json(payload);
+
+    if (iceCandidates[streamerId]) {
+      iceCandidates[streamerId].forEach(async (candidate) => {
+        try {
+          await peer.addIceCandidate(candidate);
+        } catch (e) {
+          console.error('Error adding ICE candidate:', e);
+        }
+      });
+    }
   } catch (error) {
-    console.error("Error in /broadcast:", error);
+    console.error('Error in /broadcast:', error);
     res.status(500).json({ error: error.message });
   }
 });
-function handleTrackEvent(e, peer) {
-  senderStream = e.streams[0];
+
+
+app.post('/ice-candidate/:streamerId', (req, res) => {
+  const { candidate, role } = req.body;
+  const { streamerId } = req.params;
+
+  if (!iceCandidates[streamerId]) {
+    iceCandidates[streamerId] = [];
+  }
+  iceCandidates[streamerId].push(candidate);
+  io.emit('new-ice-candidate', { candidate, role, streamerId });
+
+  res.sendStatus(200);
+});
+
+function handleTrackEvent(e, streamerId) {
+  if (e.streams && e.streams[0]) {
+    console.log("streams[0]",e.streams[0])
+    streams[streamerId] = e.streams[0];
+    console.log("streams{stremaerId]",streams)
+
+    console.log(`Stream added for streamerId ${streamerId}:`, streams[streamerId]);
+  } else {
+    console.error(`No stream found in track event for streamerId ${streamerId}`);
+  }
 }
 
-app.listen(port, "0.0.0.0", () => {
-  console.log(`Server is running on port ${port}`);
+
+io.on('connection', (socket) => {
+  socket.on('ice-candidate', ({ candidate, streamerId }) => {
+    if (!iceCandidates[streamerId]) {
+      iceCandidates[streamerId] = [];
+    }
+    iceCandidates[streamerId].push(candidate);
+  });
 });
 
-
-
-
-mongoDB();
-
+const PORT = 8000;
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server is running on port ${PORT}`);
+});
