@@ -11,7 +11,7 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
-    origin: 'http://localhost:3000', // Update to match your frontend URL
+    origin: ['http://localhost:3000',"https://live-streaming-frontend-g2aa.vercel.app"], // Update to match your frontend URL
     methods: ['GET', 'POST'],
     allowedHeaders: ['Content-Type'],
     credentials: true
@@ -27,12 +27,12 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use('/api', require("./Routes/authRoutes"));
 
 // Serve the static files from the React app
-app.use(express.static(path.resolve(__dirname, '../Frontend/build')));
+// app.use(express.static(path.resolve(__dirname, '../Frontend/build')));
 
 // Handle all GET requests to return the React app
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../Frontend/build', 'index.html'));
-});
+// app.get('*', (req, res) => {
+//   res.sendFile(path.join(__dirname, '../Frontend/build', 'index.html'));
+// });
 
 app.post('/generate-stream-id', (req, res) => {
   const streamerId = uuidv4(); // Generate unique ID for each stream
