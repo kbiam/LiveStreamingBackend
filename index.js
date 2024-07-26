@@ -6,7 +6,8 @@ const cors = require('cors');
 const socketIo = require('socket.io');
 const http = require('http');
 const { v4: uuidv4 } = require('uuid'); // Importing UUID for unique IDs
-
+const dotenv = require('dotenv')
+dotenv.config()
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
@@ -182,7 +183,7 @@ io.on('connection', (socket) => {
   });
 });
 
-const PORT = 8000;
+const PORT = process.env.PORT || 8000;
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`Server is running on port ${PORT}`);
 });
