@@ -32,7 +32,7 @@ const liveStatus=()=>{
 const startLive=(id)=>{
   try{
     live=1;
-    streamerId=decodeToken(id);
+    // streamerId=decodeToken(id);
     return {success:true,live:live,id:streamerId};
   } catch(error){
     console.log(error);
