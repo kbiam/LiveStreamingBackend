@@ -5,21 +5,23 @@ const path = require('path');
 const cors = require('cors');
 const socketIo = require('socket.io');
 const http = require('http');
-const { v4: uuidv4 } = require('uuid'); // Importing UUID for unique IDs
+const { v4: uuidv4 } = require('uuid');
 const dotenv = require('dotenv')
 dotenv.config()
+
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
-    origin: ['http://localhost:3000',"https://live-streaming-frontend-g2aa.vercel.app"], // Update to match your frontend URL
+    origin: ['http://localhost:3000', "https://live-streaming-frontend-g2aa.vercel.app"],
     methods: ['GET', 'POST'],
     allowedHeaders: ['Content-Type'],
     credentials: true
   }
 });
-let streams = {}; // Store streams by streamer ID
-let iceCandidates = {}; // Store ICE candidates by streamer ID
+
+let streams = {};
+let iceCandidates = {};
 
 app.use(cors({ origin: '*' }));
 app.use(bodyParser.json());
@@ -27,28 +29,22 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 app.use('/api', require("./Routes/authRoutes"));
 
-// Serve the static files from the React app
-// app.use(express.static(path.resolve(__dirname, '../Frontend/build')));
-
-// Handle all GET requests to return the React app
-// app.get('*', (req, res) => {
-//   res.sendFile(path.join(__dirname, '../Frontend/build', 'index.html'));
-// });
-
 app.post('/generate-stream-id', (req, res) => {
-  const streamerId = uuidv4(); // Generate unique ID for each stream
+  const streamerId = uuidv4();
   res.json({ streamerId });
 });
 
 app.post('/consumer/:streamerId', async (req, res) => {
   const { streamerId } = req.params;
-  console.log(streamerId)
+  console.log("Received consumer request for stream:", streamerId);
   try {
+    if (!streams[streamerId]) {
+      return res.status(404).json({ error: "Stream not found" });
+    }
     const peer = new webrtc.RTCPeerConnection({
       iceServers: [
-        {
-          urls: 'stun:stunprotocol.org',
-        },
+        { urls: 'stun:stun.stunprotocol.org' },
+        // Add TURN servers here if needed
       ],
     });
 
@@ -61,15 +57,13 @@ app.post('/consumer/:streamerId', async (req, res) => {
         });
       }
     };
-    // console.log(req.body,"body")
+
     const desc = new webrtc.RTCSessionDescription(req.body);
-    console.log('Received SDP:'); // Log the received SDP
-    console.log('SDP Type:', desc.type); // Log the SDP type
+    console.log('Received SDP:', desc.type);
     await peer.setRemoteDescription(desc);
 
-    console.log(streams,"streams")
     if (!streams[streamerId]) {
-      return res.status(403)
+      return res.status(404).json({ error: "Stream not found" });
     }
 
     streams[streamerId].getTracks().forEach((track) => peer.addTrack(track, streams[streamerId]));
@@ -98,13 +92,12 @@ app.post('/consumer/:streamerId', async (req, res) => {
 
 app.post('/broadcast/:streamerId', async (req, res) => {
   const { streamerId } = req.params;
-  console.log("streamerId",streamerId)
+  console.log("Received broadcast request for stream:", streamerId);
   try {
     const peer = new webrtc.RTCPeerConnection({
       iceServers: [
-        {
-          urls: 'stun:stunprotocol.org',
-        },
+        { urls: 'stun:stun.stunprotocol.org' },
+        // Add TURN servers here if needed
       ],
     });
 
@@ -120,8 +113,6 @@ app.post('/broadcast/:streamerId', async (req, res) => {
     };
     
     const desc = new webrtc.RTCSessionDescription(req.body.sdp);
-    // console.log('Received SDP:', desc); // Log the received SDP
-    // console.log('SDP Type:', desc.type); // Log the SDP type
     await peer.setRemoteDescription(desc);
 
     const answer = await peer.createAnswer();
@@ -147,7 +138,6 @@ app.post('/broadcast/:streamerId', async (req, res) => {
   }
 });
 
-
 app.post('/ice-candidate/:streamerId', (req, res) => {
   const { candidate, role } = req.body;
   const { streamerId } = req.params;
@@ -163,23 +153,21 @@ app.post('/ice-candidate/:streamerId', (req, res) => {
 
 function handleTrackEvent(e, streamerId) {
   if (e.streams && e.streams[0]) {
-    console.log("streams[0]",e.streams[0])
     streams[streamerId] = e.streams[0];
-    console.log("streams{stremaerId]",streams)
-
     console.log(`Stream added for streamerId ${streamerId}:`, streams[streamerId]);
   } else {
     console.error(`No stream found in track event for streamerId ${streamerId}`);
   }
 }
 
-
 io.on('connection', (socket) => {
-  socket.on('ice-candidate', ({ candidate, streamerId }) => {
+  socket.on('ice-candidate', ({ candidate, streamerId, role }) => {
+    console.log(`Received ICE candidate for ${role} on stream ${streamerId}`);
     if (!iceCandidates[streamerId]) {
       iceCandidates[streamerId] = [];
     }
     iceCandidates[streamerId].push(candidate);
+    io.emit('new-ice-candidate', { candidate, streamerId, role });
   });
 });
 
