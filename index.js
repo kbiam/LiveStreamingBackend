@@ -70,10 +70,10 @@ app.post('/consumer/:streamerId', async (req, res) => {
     const answer = await peer.createAnswer();
     await peer.setLocalDescription(answer);
 
-    const payload = {
+    const payload2 = {
       sdp: peer.localDescription,
     };
-    res.json(payload);
+    res.json(payload2);
 
     if (iceCandidates[streamerId]) {
       iceCandidates[streamerId].forEach(async (candidate) => {
