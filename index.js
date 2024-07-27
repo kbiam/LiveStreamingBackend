@@ -1,6 +1,7 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const webrtc = require('wrtc');
+const path = require('path');
 const cors = require('cors');
 const socketIo = require('socket.io');
 const http = require('http');
@@ -12,11 +13,11 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
-    origin: ['http://localhost:3000', 'https://live-streaming-frontend-g2aa.vercel.app'],
+    origin: ['http://localhost:3000', "https://live-streaming-frontend-g2aa.vercel.app"],
     methods: ['GET', 'POST'],
     allowedHeaders: ['Content-Type'],
-    credentials: true,
-  },
+    credentials: true
+  }
 });
 
 let streams = {};
@@ -26,7 +27,7 @@ app.use(cors({ origin: '*' }));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-app.use('/api', require('./Routes/authRoutes'));
+app.use('/api', require("./Routes/authRoutes"));
 
 app.post('/generate-stream-id', (req, res) => {
   const streamerId = uuidv4();
@@ -35,13 +36,13 @@ app.post('/generate-stream-id', (req, res) => {
 
 app.post('/consumer/:streamerId', async (req, res) => {
   const { streamerId } = req.params;
-  console.log('Received consumer request for stream:', streamerId);
+  console.log("Received consumer request for stream:", streamerId);
   try {
+    console.log("stream",streams[streamerId])
     if (!streams[streamerId]) {
-      return res.status(404).json({ error: 'Stream not found' });
+      return res.status(404).json({ error: "Stream not found" });
     }
 
-    const { sdp } = req.body;
     const peer = new webrtc.RTCPeerConnection({
       iceServers: [{ urls: 'stun:stun.stunprotocol.org' }],
     });
@@ -58,7 +59,7 @@ app.post('/consumer/:streamerId', async (req, res) => {
 
     streams[streamerId].peer.getSenders().forEach((sender) => peer.addTrack(sender.track));
 
-    const desc = new webrtc.RTCSessionDescription(sdp);
+    const desc = new webrtc.RTCSessionDescription(req.body.sdp);
     await peer.setRemoteDescription(desc);
 
     const answer = await peer.createAnswer();
@@ -66,6 +67,16 @@ app.post('/consumer/:streamerId', async (req, res) => {
 
     const response = { sdp: peer.localDescription };
     res.json(response);
+
+    if (iceCandidates[streamerId]) {
+      iceCandidates[streamerId].forEach(async (candidate) => {
+        try {
+          await peer.addIceCandidate(candidate);
+        } catch (e) {
+          console.error('Error adding ICE candidate:', e);
+        }
+      });
+    }
   } catch (error) {
     console.error('Error handling consumer connection:', error);
     res.status(500).json({ error: 'Internal Server Error' });
@@ -74,14 +85,13 @@ app.post('/consumer/:streamerId', async (req, res) => {
 
 app.post('/broadcast/:streamerId', async (req, res) => {
   const { streamerId } = req.params;
-  console.log('Broadcast request from streamer:', streamerId);
+  console.log("Received broadcast request for stream:", streamerId);
   try {
-    const { sdp } = req.body;
-
     const peer = new webrtc.RTCPeerConnection({
       iceServers: [{ urls: 'stun:stun.stunprotocol.org' }],
     });
 
+    peer.ontrack = (e) => handleTrackEvent(e, streamerId);
     peer.onicecandidate = (event) => {
       if (event.candidate) {
         io.to(streamerId).emit('new-ice-candidate', {
@@ -92,7 +102,7 @@ app.post('/broadcast/:streamerId', async (req, res) => {
       }
     };
 
-    const desc = new webrtc.RTCSessionDescription(sdp);
+    const desc = new webrtc.RTCSessionDescription(req.body.sdp);
     await peer.setRemoteDescription(desc);
 
     const answer = await peer.createAnswer();
@@ -101,6 +111,16 @@ app.post('/broadcast/:streamerId', async (req, res) => {
     streams[streamerId] = { peer };
     const response = { sdp: peer.localDescription };
     res.json(response);
+
+    if (iceCandidates[streamerId]) {
+      iceCandidates[streamerId].forEach(async (candidate) => {
+        try {
+          await peer.addIceCandidate(candidate);
+        } catch (e) {
+          console.error('Error adding ICE candidate:', e);
+        }
+      });
+    }
   } catch (error) {
     console.error('Error handling broadcast connection:', error);
     res.status(500).json({ error: 'Internal Server Error' });
@@ -108,27 +128,51 @@ app.post('/broadcast/:streamerId', async (req, res) => {
 });
 
 app.post('/ice-candidate/:streamerId', (req, res) => {
-  const { streamerId } = req.params;
   const { candidate, role } = req.body;
+  const { streamerId } = req.params;
 
-  if (role === 'consumer') {
-    if (streams[streamerId] && streams[streamerId].peer) {
+  if (!iceCandidates[streamerId]) {
+    iceCandidates[streamerId] = [];
+  }
+  iceCandidates[streamerId].push(candidate);
+
+  if (streams[streamerId]) {
+    if (role === 'consumer') {
       streams[streamerId].peer.addIceCandidate(new webrtc.RTCIceCandidate(candidate));
+    }
+    if (role === 'broadcaster') {
+      io.to(streamerId).emit('new-ice-candidate', {
+        candidate,
+        role: 'broadcaster',
+        streamerId: streamerId,
+      });
     }
   }
 
-  if (role === 'broadcaster') {
-    io.to(streamerId).emit('new-ice-candidate', {
-      candidate,
-      role: 'broadcaster',
-      streamerId: streamerId,
-    });
-  }
+  res.sendStatus(200);
+});
 
-  res.status(200).json({ success: true });
+function handleTrackEvent(e, streamerId) {
+  if (e.streams && e.streams[0]) {
+    streams[streamerId] = e.streams[0];
+    console.log(`Stream added for streamerId ${streamerId}:`, streams[streamerId]);
+  } else {
+    console.error(`No stream found in track event for streamerId ${streamerId}`);
+  }
+}
+
+io.on('connection', (socket) => {
+  socket.on('ice-candidate', ({ candidate, streamerId, role }) => {
+    console.log(`Received ICE candidate for ${role} on stream ${streamerId}`);
+    if (!iceCandidates[streamerId]) {
+      iceCandidates[streamerId] = [];
+    }
+    iceCandidates[streamerId].push(candidate);
+    io.to(streamerId).emit('new-ice-candidate', { candidate, streamerId, role });
+  });
 });
 
 const PORT = process.env.PORT || 8000;
-server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server is running on port ${PORT}`);
 });
