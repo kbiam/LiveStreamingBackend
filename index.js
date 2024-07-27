@@ -21,6 +21,7 @@ const io = socketIo(server, {
 });
 
 let streams = {};
+let peers = {};
 let iceCandidates = {};
 
 app.use(cors({ origin: '*' }));
@@ -108,7 +109,7 @@ app.post('/broadcast/:streamerId', async (req, res) => {
     const answer = await peer.createAnswer();
     await peer.setLocalDescription(answer);
 
-    streams[streamerId] = peer; // Store the broadcaster's peer connection
+    peers[streamerId] = peer; // Store the broadcaster's peer connection
     const response = { sdp: peer.localDescription };
     res.json(response);
 
@@ -136,8 +137,8 @@ app.post('/ice-candidate/:streamerId', (req, res) => {
   }
   iceCandidates[streamerId].push(candidate);
 
-  if (streams[streamerId]) {
-    streams[streamerId].addIceCandidate(new webrtc.RTCIceCandidate(candidate))
+  if (peers[streamerId]) {
+    peers[streamerId].addIceCandidate(new webrtc.RTCIceCandidate(candidate))
       .catch(e => console.error('Error adding ICE candidate:', e));
   }
 
