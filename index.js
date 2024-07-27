@@ -38,7 +38,6 @@ app.post('/consumer/:streamerId', async (req, res) => {
   const { streamerId } = req.params;
   console.log("Received consumer request for stream:", streamerId);
   try {
-    console.log("stream",streams[streamerId])
     if (!streams[streamerId]) {
       return res.status(404).json({ error: "Stream not found" });
     }
@@ -57,7 +56,8 @@ app.post('/consumer/:streamerId', async (req, res) => {
       }
     };
 
-    streams[streamerId].peer.getSenders().forEach((sender) => peer.addTrack(sender.track));
+    // Add tracks to the peer connection
+    streams[streamerId].getTracks().forEach(track => peer.addTrack(track, streams[streamerId]));
 
     const desc = new webrtc.RTCSessionDescription(req.body.sdp);
     await peer.setRemoteDescription(desc);
@@ -108,7 +108,7 @@ app.post('/broadcast/:streamerId', async (req, res) => {
     const answer = await peer.createAnswer();
     await peer.setLocalDescription(answer);
 
-    streams[streamerId] = { peer };
+    streams[streamerId] = peer; // Store the broadcaster's peer connection
     const response = { sdp: peer.localDescription };
     res.json(response);
 
@@ -137,16 +137,8 @@ app.post('/ice-candidate/:streamerId', (req, res) => {
   iceCandidates[streamerId].push(candidate);
 
   if (streams[streamerId]) {
-    if (role === 'consumer') {
-      streams[streamerId].peer.addIceCandidate(new webrtc.RTCIceCandidate(candidate));
-    }
-    if (role === 'broadcaster') {
-      io.to(streamerId).emit('new-ice-candidate', {
-        candidate,
-        role: 'broadcaster',
-        streamerId: streamerId,
-      });
-    }
+    streams[streamerId].addIceCandidate(new webrtc.RTCIceCandidate(candidate))
+      .catch(e => console.error('Error adding ICE candidate:', e));
   }
 
   res.sendStatus(200);
