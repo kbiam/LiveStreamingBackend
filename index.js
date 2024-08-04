@@ -61,7 +61,7 @@ app.post('/consumer/:streamerId', async (req, res) => {
     streams[streamerId].getTracks().forEach(track => peer.addTrack(track, streams[streamerId]));
 
     const desc = new webrtc.RTCSessionDescription(req.body.sdp);
-    console.log("Received SDP:", JSON.stringify(req.body.sdp, null, 2));
+    console.log("Received SDP:", (req.body));
     await peer.setRemoteDescription(desc);
 
     const answer = await peer.createAnswer();
