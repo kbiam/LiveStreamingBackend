@@ -60,13 +60,14 @@ app.post('/consumer/:streamerId', async (req, res) => {
     // Add tracks to the peer connection
     streams[streamerId].getTracks().forEach(track => peer.addTrack(track, streams[streamerId]));
 
-    const desc = new webrtc.RTCSessionDescription(req.body.sdp);
+    const desc = new webrtc.RTCSessionDescription(req.body);
     console.log("Received SDP:", (req.body));
     await peer.setRemoteDescription(desc);
 
     const answer = await peer.createAnswer();
     await peer.setLocalDescription(answer);
 
+    console.log("localDescription",peer.localDescription)
     const response = { sdp: peer.localDescription };
     res.json(response);
 
