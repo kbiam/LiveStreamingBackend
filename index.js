@@ -42,6 +42,7 @@ app.post('/consumer/:streamerId', async (req, res) => {
     if (!streams[streamerId]) {
       return res.status(404).json({ error: "Stream not found" });
     }
+    console.log("Stream tracks:", streams[streamerId].getTracks());
 
     const peer = new webrtc.RTCPeerConnection({
       iceServers: [{ urls: 'stun:stun.stunprotocol.org' }],
